@@ -1,0 +1,18 @@
+# Your Self Introduction
+
+Write your personal background here. This will be used to generate personalized interview answers.
+
+## Example:
+
+I'm a software engineer with 5 years of experience in full-stack development, specializing in Python and React. I've worked at both startups and established tech companies, building scalable web applications and leading engineering teams.
+
+My key strengths include:
+- Backend development (Python, Node.js, databases)
+- Frontend (React, TypeScript, modern web technologies)
+- Team leadership and mentoring junior developers
+- System architecture and scalability
+
+I'm passionate about clean code, performance optimization, and building products that users love. I enjoy solving complex technical challenges and collaborating with cross-functional teams.
+
+## Your Info:
+[Write your own background here]

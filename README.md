@@ -40,6 +40,13 @@ ollama serve
 # Configure
 cp .env.example .env
 # Edit .env with your settings
+
+# Setup database
+# 1. Edit database/self_intro.txt - Write YOUR self-introduction
+# 2. Create database/company_<name>.txt - Research about target companies
+#
+# Example: database/company_nvidia.txt, database/company_google.txt
+# Include: company overview, culture, recent news, tech stack, interview tips
 ```
 
 ## Run
@@ -47,6 +54,13 @@ cp .env.example .env
 ```bash
 python main.py
 ```
+
+A GUI window will open. Enter:
+- Company name
+- Position
+- Date (auto-fills today)
+
+Click "Start" - the app loads your self-intro + company research to generate personalized answers.
 
 ## Model Recommendations
 

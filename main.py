@@ -3,14 +3,18 @@ import time
 from dotenv import load_dotenv
 from src.stt import STT
 from src.llm_processor import LLMProcessor
+from src.gui import InterviewGUI
 
 load_dotenv()
 
 class InterviewCheatSheet:
-    def __init__(self):
+    def __init__(self, gui=None):
+        self.gui = gui
         self.llm_processor = LLMProcessor()
         self.stt = None
         self.processed_questions = []  # Track processed questions to avoid duplicates
+        self.user_profile = None
+        self.interview_context = None
         
     def is_similar_question(self, question: str) -> bool:
         """Check if this question is similar to recently processed ones"""
@@ -25,11 +29,19 @@ class InterviewCheatSheet:
                     return True
         return False
         
-    def run(self):
-        """Start background listening"""
-        print("Interview Cheat Sheet")
-        print("=" * 60)
-        print("Initializing STT (this may take a moment)...\n")
+    def start_stt_processing(self):
+        """Start STT processing in background"""
+        # Get context from GUI
+        self.interview_context = self.gui.interview_context
+        self.user_profile = self.gui.user_profile
+        
+        # Set context in LLM processor
+        self.llm_processor.set_interview_context(
+            self.interview_context,
+            self.user_profile
+        )
+        
+        self.gui.update_status("Initializing STT...")
         
         # Get device config from env or use defaults
         device = os.getenv("STT_DEVICE", "cuda")  
@@ -48,14 +60,10 @@ class InterviewCheatSheet:
             # Start listening in background
             self.stt.listen()
             
-            print("\nSystem audio capture started!")
-            print("Listening to all PC audio (Stereo Mix)...")
-            print("Will detect interview questions and suggest answers")
-            print("Press Ctrl+C to stop\n")
-            print("-" * 60)
+            self.gui.update_status("Listening to system audio...")
             
             # Main loop - check for new transcriptions
-            while self.stt.is_listening:
+            while self.stt.is_listening and self.gui.root.winfo_exists():
                 transcription = self.stt.get_last_transcription()
                 
                 if transcription:
@@ -77,17 +85,13 @@ class InterviewCheatSheet:
                     if question_to_process and not self.is_similar_question(question_to_process):
                         # Check minimum quality - must be at least 5 words
                         if len(question_to_process.split()) >= 5:
-                            print(f"\n{'='*60}")
-                            print(f"QUESTION:")
-                            print(f"   {question_to_process}")
-                            print(f"{'-'*60}")
-                            print("Asking Ollama...")
+                            self.gui.add_question(question_to_process)
+                            self.gui.update_status("Generating answer...")
                             
                             # Process with LLM
                             response = self.llm_processor.process(question_to_process)
-                            print(f"\nANSWER:")
-                            print(f"{response}")
-                            print(f"{'='*60}\n")
+                            self.gui.add_answer(response)
+                            self.gui.update_status("Listening...")
                             
                             # Track this question
                             self.processed_questions.append(question_to_process)
@@ -95,23 +99,25 @@ class InterviewCheatSheet:
                                 self.processed_questions.pop(0)
                     else:
                         # Just show transcription without processing
-                        print(f"[Transcribed]: {transcription}")
+                        self.gui.add_transcription(transcription)
                 
                 time.sleep(0.5)
                 
-        except KeyboardInterrupt:
-            print("\nStopping...")
-            if self.stt:
-                self.stt.stop()
         except Exception as e:
-            print(f"\nError: {str(e)}")
+            if self.gui:
+                self.gui.update_status(f"Error: {str(e)}")
             if self.stt:
                 self.stt.stop()
 
 def main():
     """Main entry point for the application"""
-    app = InterviewCheatSheet()
-    app.run()
+    # Create GUI with callback
+    def on_start(gui):
+        app = InterviewCheatSheet(gui)
+        app.start_stt_processing()
+    
+    gui = InterviewGUI(on_start)
+    gui.run()
 
 if __name__ == "__main__":
     main()

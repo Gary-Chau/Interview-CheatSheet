@@ -7,6 +7,13 @@ class LLMProcessor:
         self.provider = os.getenv("LLM_PROVIDER", "ollama")
         self.context_history = []  # Store recent transcriptions for context
         self.max_context = 5  # Keep last 5 transcriptions
+        self.interview_context = None
+        self.user_profile = None
+    
+    def set_interview_context(self, interview_context, user_profile):
+        """Set interview context and user profile for personalized answers"""
+        self.interview_context = interview_context
+        self.user_profile = user_profile
     
     def is_question(self, text: str) -> bool:
         """Detect if the text is likely a complete question"""
@@ -172,21 +179,38 @@ class LLMProcessor:
         """Build prompt for LLM with context"""
         context = self.get_context_string()
         
-        prompt = f"""You are helping someone answer an interview question. Provide a direct, natural answer they can use.
+        prompt = f"""You are helping answer an interview question.
 
 Question: "{interviewer_text}"
 """
         
+        # Add interview context
+        if self.interview_context:
+            prompt += f"""
+Interview Details:
+- Company: {self.interview_context.get('company', 'N/A')}
+- Position: {self.interview_context.get('position', 'N/A')}
+"""
+        
+        # Add user self intro
+        if self.user_profile:
+            if 'self_intro' in self.user_profile:
+                prompt += f"\nCandidate Background:\n{self.user_profile['self_intro'][:500]}\n"
+            
+            # Add company background if available
+            if 'company_background' in self.user_profile:
+                prompt += f"\nCompany Research:\n{self.user_profile['company_background'][:500]}\n"
+        
+        # Add recent context
         if context and context != interviewer_text:
-            prompt += f"\nContext: {context}\n"
+            prompt += f"\nRecent Context: {context}\n"
         
         prompt += """
-Give a clear answer with:
+Provide a concise answer:
 - 2-3 main points
-- Specific examples if helpful
-- Natural, conversational tone
-
-Just provide the answer text directly, no labels or meta-commentary."""
+- Use candidate's background if relevant
+- Natural tone
+- No labels or meta-commentary"""
         
         return prompt
 
